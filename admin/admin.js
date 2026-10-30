@@ -1,7 +1,9 @@
 /*
- * Page des résultats : avec le mot de passe, lit les statistiques dans la base de données
- * et les affiche question par question. Chaque barre montre la part des répondants
- * à la question qui ont choisi cette réponse.
+ * Page des résultats : avec le mot de passe, lit les réponses dans la base de données.
+ * - « Par personne » : une fiche par participation, avec le prénom, le nom, les coordonnées
+ *   et toutes les réponses de la personne.
+ * - « Statistiques » : le total question par question ; chaque barre montre la part des
+ *   répondants à la question qui ont choisi cette réponse.
  */
 (function () {
   "use strict";
@@ -13,11 +15,16 @@
 
   // Les dates de la base sont en UTC (« 2026-10-30T14:05:00Z »).
   const lireDate = (texte) => new Date(texte);
+  // Pour la recherche : minuscules, sans accents.
+  const simplifier = (texte) => texte.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
   // Le mot de passe est gardé le temps de l'onglet, pour « Actualiser » et « Télécharger ».
   const MEMOIRE = "aw-resultats";
   let motDePasse = "";
   try { motDePasse = sessionStorage.getItem(MEMOIRE) || ""; } catch { /* navigation privée */ }
+
+  let vue = "personnes";
+  let statistiquesAJour = false;
 
   function element(balise, classe, texte) {
     const el = document.createElement(balise);
@@ -26,6 +33,87 @@
     return el;
   }
 
+  function horodatage(texte) {
+    const temps = element("time", "", dateLongue.format(lireDate(texte)));
+    temps.dateTime = lireDate(texte).toISOString();
+    return temps;
+  }
+
+  // ——— Par personne ———
+  function reponseLisible(q, valeurs) {
+    if (!valeurs || !valeurs.length) return "";
+    if (q.type === "note") return valeurs[0] + " / 5";
+    return valeurs.join(", ");
+  }
+
+  function fiche(p, questions) {
+    const article = element("article", "carte personne");
+    const nom = [p.prenom, p.nom].filter(Boolean).join(" ") || "Sans nom";
+    const tete = element("div", "personne-tete");
+    tete.append(element("h2", "", nom), horodatage(p.date));
+    article.append(tete);
+
+    if (p.email || p.telephone) {
+      const contact = element("p", "personne-contact");
+      if (p.email) {
+        const email = element("a", "", p.email);
+        email.href = "mailto:" + p.email;
+        contact.append(email);
+      }
+      if (p.telephone) {
+        const telephone = element("a", "", p.telephone);
+        telephone.href = "tel:" + p.telephone.replace(/\s/g, "");
+        contact.append(telephone);
+      }
+      article.append(contact);
+    }
+
+    const liste = element("dl", "personne-reponses");
+    questions.forEach((q) => {
+      const reponse = reponseLisible(q, p.reponses[q.id]);
+      liste.append(element("dt", "", q.intitule), element("dd", reponse ? "" : "vide", reponse || "Pas de réponse"));
+    });
+    article.append(liste);
+
+    article.dataset.recherche = simplifier([nom, p.email, p.telephone, (p.telephone || "").replace(/\s/g, "")].join(" "));
+    return article;
+  }
+
+  function afficherPersonnes(donnees) {
+    const participations = donnees.participations;
+    $("#total").textContent = participations.length;
+    $("#derniere").textContent = participations.length
+      ? dateLongue.format(lireDate(participations[participations.length - 1].date))
+      : "Aucune";
+
+    const zone = $("#personnes");
+    zone.replaceChildren();
+    if (!participations.length) {
+      zone.append(element("p", "vide", "Aucune participation pour l'instant : partagez le lien du questionnaire !"));
+    } else {
+      const questions = donnees.questions.filter((q) => q.type !== "coordonnees");
+      // Les plus récentes en premier.
+      participations.slice().reverse().forEach((p) => zone.append(fiche(p, questions)));
+    }
+    filtrer();
+  }
+
+  function filtrer() {
+    const fiches = [...document.querySelectorAll("#personnes .personne")];
+    const cherche = simplifier($("#recherche").value.trim());
+    let visibles = 0;
+    fiches.forEach((f) => {
+      f.hidden = Boolean(cherche) && !f.dataset.recherche.includes(cherche);
+      if (!f.hidden) visibles++;
+    });
+    $("#compte").textContent = !fiches.length ? ""
+      : cherche ? (visibles ? visibles + " personne" + (visibles > 1 ? "s" : "") + " sur " + fiches.length : "Aucune personne ne correspond à votre recherche.")
+      : fiches.length + " personne" + (fiches.length > 1 ? "s" : "");
+  }
+
+  $("#recherche").addEventListener("input", filtrer);
+
+  // ——— Statistiques ———
   function ligne(nom, nombre, repondants) {
     const part = repondants ? nombre / repondants : 0;
     const li = element("li", "ligne");
@@ -43,32 +131,11 @@
 
   function carte(q) {
     const article = element("article", "carte resultat");
-    article.append(element("h2", "", "Q" + q.numero + " · " + q.intitule));
-    let meta = q.repondants + (q.type === "coordonnees" ? " personne" : " répondant") + (q.repondants > 1 ? "s" : "");
+    article.append(element("h2", "", q.intitule));
+    let meta = q.repondants + " répondant" + (q.repondants > 1 ? "s" : "");
     if (q.type === "multiple") meta += " · plusieurs réponses possibles";
     if (q.type === "note" && q.moyenne !== null) meta += " · moyenne " + decimal.format(q.moyenne) + " / 5";
     article.append(element("p", "meta", meta));
-
-    if (q.type === "coordonnees") {
-      if (!q.contacts.length) {
-        article.append(element("p", "vide", "Aucune réponse pour l'instant."));
-        return article;
-      }
-      const liste = element("ul", "contacts");
-      q.contacts.forEach((c) => {
-        const li = element("li");
-        const temps = element("time", "", dateLongue.format(lireDate(c.date)));
-        temps.dateTime = lireDate(c.date).toISOString();
-        const email = element("a", "", c.email);
-        email.href = "mailto:" + c.email;
-        const telephone = element("a", "", c.telephone);
-        telephone.href = "tel:" + c.telephone.replace(/\s/g, "");
-        li.append(temps, element("strong", "", c.prenom + " " + c.nom), email, telephone);
-        liste.append(li);
-      });
-      article.append(liste);
-      return article;
-    }
 
     if (q.type === "texte") {
       if (!q.textes.length) {
@@ -78,9 +145,7 @@
       const liste = element("ul", "textes");
       q.textes.forEach((t) => {
         const li = element("li", "", t.texte);
-        const temps = element("time", "", dateLongue.format(lireDate(t.date)));
-        temps.dateTime = lireDate(t.date).toISOString();
-        li.prepend(temps);
+        li.prepend(horodatage(t.date));
         liste.append(li);
       });
       article.append(liste);
@@ -98,15 +163,31 @@
     return article;
   }
 
-  function afficher(donnees) {
-    $("#total").textContent = donnees.total;
-    $("#derniere").textContent = donnees.derniere ? dateLongue.format(lireDate(donnees.derniere)) : "Aucune";
+  function afficherStatistiques(donnees) {
     const zone = $("#resultats");
     zone.replaceChildren();
     if (!donnees.total) zone.append(element("p", "vide", "Aucune participation pour l'instant : partagez le lien du questionnaire !"));
-    else donnees.questions.forEach((q) => zone.append(carte(q)));
+    // Les coordonnées sont dans « Par personne ».
+    else donnees.questions.filter((q) => q.type !== "coordonnees").forEach((q) => zone.append(carte(q)));
+    statistiquesAJour = true;
   }
 
+  // ——— Onglets ———
+  async function changerVue(nouvelle) {
+    vue = nouvelle;
+    $("#ongletPersonnes").setAttribute("aria-pressed", String(vue === "personnes"));
+    $("#ongletQuestions").setAttribute("aria-pressed", String(vue === "questions"));
+    $("#vuePersonnes").hidden = vue !== "personnes";
+    $("#vueQuestions").hidden = vue !== "questions";
+    if (vue === "questions" && !statistiquesAJour) {
+      await action($("#ongletQuestions"), async () => afficherStatistiques(await Base.resultats(motDePasse)));
+    }
+  }
+
+  $("#ongletPersonnes").addEventListener("click", () => changerVue("personnes"));
+  $("#ongletQuestions").addEventListener("click", () => changerVue("questions"));
+
+  // ——— Connexion ———
   function messageErreur(err) {
     if (err.statut) return err.message || "La base de données ne répond pas correctement. Réessayez dans un instant.";
     return "La base de données est injoignable. Vérifiez votre connexion puis réessayez.";
@@ -117,17 +198,18 @@
     $("#tableau").hidden = !visible;
   }
 
-  // ——— Connexion ———
   async function entrer(essai) {
     const bouton = $("#entrer");
     const erreur = $("#erreurConnexion");
     bouton.disabled = true;
     try {
-      afficher(await Base.resultats(essai));
+      afficherPersonnes(await Base.exporter(essai));
       motDePasse = essai;
+      statistiquesAJour = false;
       try { sessionStorage.setItem(MEMOIRE, essai); } catch { /* navigation privée */ }
       erreur.hidden = true;
       montrerTableau(true);
+      changerVue("personnes");
     } catch (err) {
       erreur.textContent = messageErreur(err);
       erreur.hidden = false;
@@ -146,6 +228,8 @@
     motDePasse = "";
     try { sessionStorage.removeItem(MEMOIRE); } catch { /* navigation privée */ }
     $("#motDePasse").value = "";
+    $("#personnes").replaceChildren();
+    $("#resultats").replaceChildren();
     montrerTableau(false);
   });
 
@@ -164,7 +248,11 @@
     }
   }
 
-  $("#actualiser").addEventListener("click", (e) => action(e.currentTarget, async () => afficher(await Base.resultats(motDePasse))));
+  $("#actualiser").addEventListener("click", (e) => action(e.currentTarget, async () => {
+    afficherPersonnes(await Base.exporter(motDePasse));
+    statistiquesAJour = false;
+    if (vue === "questions") afficherStatistiques(await Base.resultats(motDePasse));
+  }));
 
   $("#telecharger").addEventListener("click", (e) => action(e.currentTarget, async () => {
     const fichier = new Blob([csv(await Base.exporter(motDePasse))], { type: "text/csv;charset=utf-8" });
@@ -177,7 +265,7 @@
     setTimeout(() => URL.revokeObjectURL(lien.href), 1000);
   }));
 
-  // Point-virgule et BOM : le fichier s'ouvre directement dans Excel en français, accents compris.
+  // Une ligne par personne. Point-virgule et BOM : le fichier s'ouvre directement dans Excel en français, accents compris.
   function csv(donnees) {
     const questions = donnees.questions.filter((q) => q.type !== "coordonnees");
     const entete = ["N°", "Date (UTC)", "Prénom", "Nom", "E-mail", "Téléphone", ...questions.map((q) => "Q" + q.numero + " · " + q.intitule)];
@@ -187,7 +275,7 @@
       p.prenom || "", p.nom || "", p.email || "", p.telephone || "",
       ...questions.map((q) => (p.reponses[q.id] || []).join(" | "))
     ]);
-    return "\ufeff" + [entete, ...lignes].map((l) => l.map(cellule).join(";")).join("\r\n") + "\r\n";
+    return "﻿" + [entete, ...lignes].map((l) => l.map(cellule).join(";")).join("\r\n") + "\r\n";
   }
 
   function cellule(valeur) {

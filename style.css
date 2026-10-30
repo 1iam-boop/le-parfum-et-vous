@@ -134,9 +134,25 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 .mention-rgpd { margin: .8rem 0 0; font-size: .75rem; line-height: 1.5; color: var(--gris); }
 @media (max-width: 480px) { .coordonnees { grid-template-columns: 1fr; } }
 
-/* Liste des coordonnées (page des résultats) */
-.contacts { display: grid; gap: .5rem; max-height: 26rem; overflow: auto; margin: 0; padding: 0; list-style: none; }
-.contacts li { display: grid; grid-template-columns: auto 1fr; gap: .1rem 1rem; padding: .6rem .8rem; border-left: 3px solid var(--rose); background: #fff; border-radius: 0 10px 10px 0; font-size: .9rem; overflow-wrap: anywhere; }
-.contacts time { grid-column: 1 / -1; font-size: .72rem; color: var(--gris); }
-.contacts strong { grid-column: 1 / -1; font-weight: 600; }
-.contacts a { color: var(--prune); }
+/* Page des résultats : onglets, recherche et fiche de chaque personne */
+.onglets { display: inline-flex; gap: .3rem; padding: .3rem; margin-bottom: 1.2rem; border: 1px solid var(--trait); border-radius: 999px; background: var(--papier); }
+.onglet { padding: .55rem 1.2rem; border: 0; border-radius: 999px; background: none; font: 600 .75rem var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--gris); cursor: pointer; }
+.onglet[aria-pressed="true"] { background: var(--prune); color: var(--papier); }
+.onglet:focus-visible { outline: 2px solid var(--prune); outline-offset: 2px; }
+.recherche { margin: 0 0 .6rem; }
+.compte { margin: 0 0 1rem; font-size: .8rem; color: var(--gris); }
+.personne-tete { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .2rem 1rem; }
+.personne-tete h2 { font-family: var(--serif); font-size: 1.4rem; font-weight: 600; }
+.personne-tete time { font-size: .78rem; color: var(--gris); }
+.personne-contact { display: flex; flex-wrap: wrap; gap: .2rem 1.2rem; margin: .3rem 0 0; font-size: .9rem; }
+.personne-contact a { color: var(--prune); overflow-wrap: anywhere; }
+.personne-reponses { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); margin: 1rem 0 0; }
+.personne-reponses dt, .personne-reponses dd { margin: 0; padding: .55rem 0; border-top: 1px solid var(--trait); }
+.personne-reponses dt { padding-right: 1rem; font-size: .82rem; color: var(--gris); }
+.personne-reponses dd { font-size: .9rem; font-weight: 500; overflow-wrap: anywhere; }
+.personne-reponses dd.vide { font-weight: 400; font-style: italic; }
+@media (max-width: 560px) {
+  .personne-reponses { grid-template-columns: 1fr; }
+  .personne-reponses dt { padding-bottom: .1rem; }
+  .personne-reponses dd { padding-top: 0; border-top: 0; }
+}

@@ -7,7 +7,10 @@ Un petit site indépendant en trois étapes :
 3. **un lien vers le site AW Parfumerie** (https://1iam-boop.github.io/Nextface/).
 
 Le site est hébergé gratuitement sur **GitHub Pages** : `https://1iam-boop.github.io/le-parfum-et-vous/`.
-Les réponses sont enregistrées dans **une petite base de données gratuite chez [Supabase](https://supabase.com)** (PostgreSQL). Une page protégée par mot de passe affiche les résultats et permet de tout télécharger pour Excel : `https://1iam-boop.github.io/le-parfum-et-vous/admin/`.
+Les réponses sont enregistrées dans **une petite base de données gratuite chez [Supabase](https://supabase.com)** (PostgreSQL). Une page protégée par mot de passe, `https://1iam-boop.github.io/le-parfum-et-vous/admin/`, affiche :
+- **Par personne** : les réponses de chaque personne sous son prénom et son nom, avec son e-mail et son téléphone (et une recherche) ;
+- **Statistiques** : le total des réponses question par question ;
+- un bouton pour tout télécharger dans un fichier Excel (une ligne par personne).
 
 ### Données personnelles (RGPD)
 - La personne coche une case pour accepter qu'AW Parfumerie utilise ses coordonnées pour la recontacter ; un texte sous les champs l'informe qu'elles ne sont jamais transmises à des tiers, qu'elles sont effacées au bout de 3 ans et qu'elle peut écrire à simaowilly@gmail.com pour les consulter, les corriger ou les supprimer.
@@ -46,7 +49,7 @@ Sur GitHub, dans ce dépôt : **Settings** › **Pages** › **Source : Deploy f
 | `style.css` | Le style (couleurs et polices accordées au site AW Parfumerie) |
 | `config.js` | L'adresse et la clé publique de la base Supabase |
 | `supabase.js` | Les appels à la base de données |
-| `admin/` | La page des résultats |
+| `admin/` | La page des résultats (par personne, statistiques, export Excel) |
 | `supabase.sql` | La base de données : tables, **les 11 questions**, vérification des réponses, statistiques, droits d'accès |
 
 ## La base de données

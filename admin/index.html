@@ -47,8 +47,24 @@
         <div class="chiffre"><span>Dernière réponse</span><strong class="petit" id="derniere">–</strong></div>
       </div>
 
+      <div class="onglets" role="group" aria-label="Affichage des résultats">
+        <button class="onglet" id="ongletPersonnes" aria-pressed="true">Par personne</button>
+        <button class="onglet" id="ongletQuestions" aria-pressed="false">Statistiques</button>
+      </div>
+
       <p class="erreur" id="erreur" role="alert" hidden></p>
-      <div class="resultats" id="resultats" aria-live="polite"></div>
+
+      <!-- Les réponses de chaque personne, sous son prénom et son nom -->
+      <section id="vuePersonnes">
+        <input type="search" id="recherche" class="champ recherche" placeholder="Nom, e-mail ou téléphone…" aria-label="Rechercher une personne" autocomplete="off" />
+        <p class="compte" id="compte" aria-live="polite"></p>
+        <div class="resultats" id="personnes"></div>
+      </section>
+
+      <!-- Le total des réponses, question par question -->
+      <section id="vueQuestions" hidden>
+        <div class="resultats" id="resultats"></div>
+      </section>
     </div>
   </main>
 
