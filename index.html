@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Le parfum et vous · Questionnaire</title>
+  <meta name="description" content="10 questions, 2 minutes : parlez-nous de votre rapport au parfum, puis découvrez AW Parfumerie." />
+  <meta name="theme-color" content="#f6efe7" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://*.supabase.co; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; base-uri 'none'; form-action 'self'" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Mrs+Saint+Delafield&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="entete">
+    <span class="marque"><span class="script">Le parfum</span> et vous</span>
+  </header>
+
+  <main class="page">
+    <!-- 1. Accueil -->
+    <section class="ecran" id="accueil">
+      <p class="surtitre">Questionnaire · 10 questions · 2 minutes</p>
+      <h1 class="titre" tabindex="-1"><span class="script">Le parfum</span> et vous</h1>
+      <p class="intro">Vos habitudes, vos goûts, votre budget : aidez-nous à mieux connaître ce que vous attendez d'un parfum.</p>
+      <button class="btn btn-prune" id="commencer" disabled>Commencer</button>
+      <p class="erreur" id="erreurChargement" role="alert" hidden></p>
+      <p class="mention">Réponses anonymes : nous ne vous demandons ni nom, ni e-mail.</p>
+    </section>
+
+    <!-- 2. Les 10 questions (affichées une par une par app.js) -->
+    <section class="ecran" id="questionnaire" hidden>
+      <div class="progression">
+        <p class="compteur" id="compteur"></p>
+        <div class="barre" id="barre" role="progressbar" aria-label="Avancement du questionnaire" aria-valuemin="0"><span></span></div>
+      </div>
+      <form id="formulaire" class="carte" novalidate>
+        <fieldset id="question"></fieldset>
+        <p class="erreur" id="erreur" role="alert" hidden></p>
+        <div class="actions">
+          <button type="button" class="btn btn-trait" id="precedent">Précédent</button>
+          <button type="submit" class="btn btn-prune" id="suivant">Suivant</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- 3. Merci, présentation d'AW Parfumerie en 3 phrases et lien vers le site -->
+    <section class="ecran" id="merci" hidden>
+      <p class="surtitre">Merci pour vos réponses !</p>
+      <h2 class="titre" tabindex="-1"><span class="script">Découvrez</span> AW Parfumerie</h2>
+      <div class="presentation carte">
+        <p>AW Parfumerie, c'est plus de 140 parfums femme, homme et mixte, créés en s'inspirant des grandes fragrances, à découvrir en 15&nbsp;ml dès 11,90&nbsp;€ ou à adopter en 70&nbsp;ml.</p>
+        <p>La boutique propose aussi des soins pour le corps, le visage et les cheveux, fabriqués en Italie avec des ingrédients naturels, sans parabènes et non testés sur les animaux, ainsi que des parfums d'ambiance pour la maison.</p>
+        <p>Et pour ne pas vous tromper, un test en 3 questions et des conseils personnalisés vous aident à trouver la fragrance qui vous ressemble.</p>
+      </div>
+      <a class="btn btn-prune" href="https://1iam-boop.github.io/Nextface/">Visiter le site AW Parfumerie</a>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="supabase.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

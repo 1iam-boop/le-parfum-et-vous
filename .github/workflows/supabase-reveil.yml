@@ -1,0 +1,29 @@
+# Supabase met en pause les projets gratuits après une semaine sans activité.
+# Ce robot lit les questions du questionnaire tous les 3 jours pour garder la base éveillée.
+name: Garder la base du questionnaire éveillée
+
+on:
+  schedule:
+    - cron: "17 6 */3 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reveil:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lire les questions dans Supabase
+        run: |
+          url=$(sed -n 's/^ *url: "\(.*\)",\{0,1\}$/\1/p' config.js)
+          cle=$(sed -n 's/^ *cle: "\(.*\)",\{0,1\}$/\1/p' config.js)
+          if [ -z "$url" ] || [ -z "$cle" ]; then
+            echo "La base n'est pas encore configurée dans config.js : rien à faire."
+            exit 0
+          fi
+          entetes=(-H "apikey: $cle")
+          case "$cle" in eyJ*) entetes+=(-H "Authorization: Bearer $cle") ;; esac
+          curl -fsS -o /dev/null "${entetes[@]}" "${url%/}/rest/v1/questions?select=id&limit=1"
+          echo "Base Supabase contactée."

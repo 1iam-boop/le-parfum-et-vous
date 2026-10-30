@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://*.supabase.co; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; base-uri 'none'; form-action 'self'" />
+  <title>Résultats · Le parfum et vous</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Mrs+Saint+Delafield&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+  <header class="entete">
+    <span class="marque"><span class="script">Le parfum</span> et vous</span>
+  </header>
+
+  <main class="page page-large">
+    <!-- Connexion -->
+    <form class="carte connexion" id="connexion">
+      <p class="surtitre">Questionnaire « Le parfum et vous »</p>
+      <h1>Résultats</h1>
+      <label for="motDePasse">Mot de passe</label>
+      <input type="password" id="motDePasse" class="champ" autocomplete="current-password" required />
+      <button class="btn btn-prune" type="submit" id="entrer">Voir les résultats</button>
+      <p class="erreur" id="erreurConnexion" role="alert" hidden></p>
+    </form>
+
+    <!-- Tableau des résultats -->
+    <div id="tableau" hidden>
+      <div class="admin-tete">
+        <div>
+          <p class="surtitre">Questionnaire « Le parfum et vous »</p>
+          <h1>Résultats</h1>
+        </div>
+        <div class="admin-outils">
+          <button class="btn btn-trait" id="actualiser">Actualiser</button>
+          <button class="btn btn-prune" id="telecharger">Télécharger (Excel)</button>
+          <button class="btn btn-trait" id="verrouiller">Verrouiller</button>
+        </div>
+      </div>
+
+      <div class="chiffres">
+        <div class="chiffre"><span>Participations</span><strong id="total">–</strong></div>
+        <div class="chiffre"><span>Dernière réponse</span><strong class="petit" id="derniere">–</strong></div>
+      </div>
+
+      <p class="erreur" id="erreur" role="alert" hidden></p>
+      <div class="resultats" id="resultats" aria-live="polite"></div>
+    </div>
+  </main>
+
+  <script src="../config.js"></script>
+  <script src="../supabase.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
