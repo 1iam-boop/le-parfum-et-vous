@@ -1,5 +1,6 @@
 -- ============================================================================
 -- Base de données du questionnaire « Le parfum et vous » · AW Parfumerie
+-- (11 questions : les coordonnées de la personne, puis 10 questions sur le parfum)
 --
 -- À coller dans Supabase › SQL Editor, puis cliquer sur « Run ».
 -- AVANT : remplacez CHANGEZ-MOI ci-dessous par le mot de passe de la page des résultats.
@@ -7,12 +8,15 @@
 --
 -- Le script peut être relancé sans perdre les réponses déjà enregistrées,
 -- par exemple pour changer le mot de passe ou les questions.
+-- Si le mot de passe est déjà défini, laissez CHANGEZ-MOI : il est conservé.
 -- ============================================================================
 
 -- 1. Mot de passe de la page des résultats ------------------------------------
 -- Rangé dans le schéma « prive », que le site ne peut pas lire.
 create schema if not exists prive;
 create table if not exists prive.reglages (cle text primary key, valeur text not null);
+-- Mauvais mots de passe récents : au-delà de 10 en 15 minutes, la page des résultats se bloque un moment.
+create table if not exists prive.essais (id bigint generated always as identity primary key, le timestamptz not null default now());
 
 do $$
 declare
@@ -31,17 +35,28 @@ create table if not exists public.questions (
   numero      integer not null,
   intitule    text not null,
   aide        text not null default '',
-  type        text not null check (type in ('unique', 'multiple', 'note', 'texte')),
+  type        text not null,
   choix       jsonb not null default '[]',   -- réponses proposées (unique, multiple)
   etiquettes  jsonb not null default '[]',   -- mots sous 1 et sous 5 (note)
   obligatoire boolean not null default true,
   active      boolean not null default true
 );
 
+alter table public.questions drop constraint if exists questions_type_check;
+alter table public.questions add constraint questions_type_check
+  check (type in ('coordonnees', 'unique', 'multiple', 'note', 'texte'));
+
+-- Une ligne par questionnaire envoyé, avec les coordonnées de la personne.
 create table if not exists public.participations (
   id      bigint generated always as identity primary key,
   cree_le timestamptz not null default now()
 );
+alter table public.participations
+  add column if not exists prenom        text,
+  add column if not exists nom           text,
+  add column if not exists email         text,
+  add column if not exists telephone     text,
+  add column if not exists consentement  boolean not null default false;
 
 -- Une ligne par réponse donnée (plusieurs lignes pour une question à choix multiples).
 create table if not exists public.reponses (
@@ -53,27 +68,29 @@ create table if not exists public.reponses (
 create index if not exists reponses_par_question on public.reponses (question_id, valeur);
 create index if not exists reponses_par_participation on public.reponses (participation_id);
 
--- 3. Les 10 questions -----------------------------------------------------------
--- type : unique (une réponse), multiple (plusieurs), note (de 1 à 5), texte (réponse libre).
+-- 3. Les 11 questions -----------------------------------------------------------
+-- type : coordonnees (prénom, nom, e-mail, téléphone), unique (une réponse), multiple (plusieurs),
+--        note (de 1 à 5), texte (réponse libre).
 -- Ne changez pas l'id d'une question qui a déjà des réponses.
 insert into public.questions (id, numero, intitule, aide, type, choix, etiquettes, obligatoire) values
-  ('age', 1, 'Quel âge avez-vous ?', '', 'unique', '["Moins de 18 ans","18 à 25 ans","26 à 35 ans","36 à 50 ans","Plus de 50 ans"]', '[]', true),
-  ('frequence', 2, 'À quelle fréquence portez-vous du parfum ?', '', 'unique', '["Tous les jours","Plusieurs fois par semaine","Pour les grandes occasions","Rarement","Jamais"]', '[]', true),
-  ('importance', 3, 'Quelle place le parfum a-t-il dans votre quotidien ?', '', 'note', '[]', '["Aucune","Essentielle"]', true),
-  ('familles', 4, 'Quelles familles de parfums préférez-vous ?', 'Plusieurs réponses possibles.', 'multiple', '["Florale (rose, jasmin…)","Fruitée","Boisée","Orientale (ambre, épices…)","Fraîche (agrumes, notes marines…)","Gourmande (vanille, caramel…)"]', '[]', true),
-  ('prefere', 5, 'Quel est votre parfum préféré en ce moment ?', 'Facultatif.', 'texte', '[]', '[]', false),
-  ('budget', 6, 'Combien dépensez-vous en général pour un parfum ?', '', 'unique', '["Moins de 20 €","De 20 à 50 €","De 50 à 100 €","Plus de 100 €"]', '[]', true),
-  ('achat', 7, 'Où achetez-vous vos parfums ?', 'Plusieurs réponses possibles.', 'multiple', '["En parfumerie (Sephora, Nocibé…)","En grande surface","Sur internet","Auprès d''un vendeur indépendant","On me les offre"]', '[]', true),
-  ('critere', 8, 'Qu''est-ce qui compte le plus pour vous dans un parfum ?', '', 'unique', '["L''odeur","La tenue","Le prix","La marque","Le flacon"]', '[]', true),
-  ('inspiration', 9, 'Connaissez-vous les parfums « d''inspiration », créés d''après de grandes fragrances et vendus à petit prix ?', '', 'unique', '["Oui, j''en ai déjà acheté","Oui, mais je n''en ai jamais acheté","Non, je ne connais pas"]', '[]', true),
-  ('format', 10, 'Aimeriez-vous tester un parfum en petit format (15 ml) avant d''acheter un grand flacon ?', '', 'unique', '["Oui","Peut-être","Non"]', '[]', true)
+  ('coordonnees', 1, 'Vos coordonnées', 'Pour que nous puissions vous recontacter.', 'coordonnees', '[]', '[]', true),
+  ('age', 2, 'Quel âge avez-vous ?', '', 'unique', '["Moins de 18 ans","18 à 25 ans","26 à 35 ans","36 à 50 ans","Plus de 50 ans"]', '[]', true),
+  ('frequence', 3, 'À quelle fréquence portez-vous du parfum ?', '', 'unique', '["Tous les jours","Plusieurs fois par semaine","Pour les grandes occasions","Rarement","Jamais"]', '[]', true),
+  ('importance', 4, 'Quelle place le parfum a-t-il dans votre quotidien ?', '', 'note', '[]', '["Aucune","Essentielle"]', true),
+  ('familles', 5, 'Quelles familles de parfums préférez-vous ?', 'Plusieurs réponses possibles.', 'multiple', '["Florale (rose, jasmin…)","Fruitée","Boisée","Orientale (ambre, épices…)","Fraîche (agrumes, notes marines…)","Gourmande (vanille, caramel…)"]', '[]', true),
+  ('prefere', 6, 'Quel est votre parfum préféré en ce moment ?', 'Facultatif.', 'texte', '[]', '[]', false),
+  ('budget', 7, 'Combien dépensez-vous en général pour un parfum ?', '', 'unique', '["Moins de 20 €","De 20 à 50 €","De 50 à 100 €","Plus de 100 €"]', '[]', true),
+  ('achat', 8, 'Où achetez-vous vos parfums ?', 'Plusieurs réponses possibles.', 'multiple', '["En parfumerie (Sephora, Nocibé…)","En grande surface","Sur internet","Auprès d''un vendeur indépendant","On me les offre"]', '[]', true),
+  ('critere', 9, 'Qu''est-ce qui compte le plus pour vous dans un parfum ?', '', 'unique', '["L''odeur","La tenue","Le prix","La marque","Le flacon"]', '[]', true),
+  ('inspiration', 10, 'Connaissez-vous les parfums « d''inspiration », créés d''après de grandes fragrances et vendus à petit prix ?', '', 'unique', '["Oui, j''en ai déjà acheté","Oui, mais je n''en ai jamais acheté","Non, je ne connais pas"]', '[]', true),
+  ('format', 11, 'Aimeriez-vous tester un parfum en petit format (15 ml) avant d''acheter un grand flacon ?', '', 'unique', '["Oui","Peut-être","Non"]', '[]', true)
 on conflict (id) do update set
   numero = excluded.numero, intitule = excluded.intitule, aide = excluded.aide, type = excluded.type,
   choix = excluded.choix, etiquettes = excluded.etiquettes, obligatoire = excluded.obligatoire, active = true;
 
 -- Une question retirée de la liste ci-dessus est masquée, mais ses réponses sont gardées.
 update public.questions set active = false
-where id not in ('age', 'frequence', 'importance', 'familles', 'prefere', 'budget', 'achat', 'critere', 'inspiration', 'format');
+where id not in ('coordonnees', 'age', 'frequence', 'importance', 'familles', 'prefere', 'budget', 'achat', 'critere', 'inspiration', 'format');
 
 -- 4. Enregistrer un questionnaire rempli ---------------------------------------
 -- Appelée par le site. Vérifie chaque réponse ; en cas d'erreur, rien n'est enregistré.
@@ -87,6 +104,10 @@ declare
   q public.questions;
   v jsonb;
   id_participation bigint;
+  le_prenom text;
+  le_nom text;
+  l_email text;
+  le_telephone text;
 begin
   if contenu is null or jsonb_typeof(contenu) <> 'object' then
     raise exception 'Format de réponse invalide.';
@@ -95,10 +116,50 @@ begin
     raise exception 'Réponse trop volumineuse.';
   end if;
 
+  -- Les coordonnées sont effacées au bout de 3 ans (les réponses restent, sans nom).
+  update participations set prenom = null, nom = null, email = null, telephone = null
+  where cree_le < now() - interval '3 years' and email is not null;
+
   insert into participations default values returning id into id_participation;
 
   for q in select * from questions where active order by numero loop
     v := contenu -> q.id;
+
+    if q.type = 'coordonnees' then
+      if v is null or jsonb_typeof(v) <> 'object' then
+        raise exception 'Merci d''indiquer vos coordonnées.';
+      end if;
+      le_prenom := left(btrim(coalesce(v ->> 'prenom', '')), 100);
+      le_nom := left(btrim(coalesce(v ->> 'nom', '')), 100);
+      l_email := lower(btrim(coalesce(v ->> 'email', '')));
+      le_telephone := regexp_replace(coalesce(v ->> 'telephone', ''), '[^0-9+]', '', 'g');
+      if le_prenom = '' then
+        raise exception 'Merci d''indiquer votre prénom.';
+      end if;
+      if le_nom = '' then
+        raise exception 'Merci d''indiquer votre nom.';
+      end if;
+      if length(l_email) > 254 or l_email !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then
+        raise exception 'L''adresse e-mail n''est pas valide.';
+      end if;
+      if le_telephone !~ '^\+?[0-9]{8,15}$' then
+        raise exception 'Le numéro de téléphone n''est pas valide.';
+      end if;
+      -- Numéros français écrits « 06 12 34 56 78 » (lisibles, et Excel garde le 0 du début).
+      if le_telephone ~ '^\+33[1-9][0-9]{8}$' then
+        le_telephone := '0' || substr(le_telephone, 4);
+      end if;
+      if le_telephone ~ '^0[0-9]{9}$' then
+        le_telephone := regexp_replace(le_telephone, '([0-9]{2})(?=[0-9])', '\1 ', 'g');
+      end if;
+      if (v -> 'consentement') is distinct from 'true'::jsonb then
+        raise exception 'Merci d''accepter que nous vous recontactions pour continuer.';
+      end if;
+      update participations
+      set prenom = le_prenom, nom = le_nom, email = l_email, telephone = le_telephone, consentement = true
+      where id = id_participation;
+      continue;
+    end if;
 
     if v is null or jsonb_typeof(v) = 'null'
        or (jsonb_typeof(v) = 'string' and btrim(v #>> '{}') = '')
@@ -145,8 +206,11 @@ end;
 $$;
 
 -- 5. Page des résultats (protégée par le mot de passe) ---------------------------
-create or replace function prive.verifier_mot_de_passe(mot_de_passe text)
-returns void
+-- Renvoie null si le mot de passe est bon, sinon le message à afficher.
+-- (Pas d'exception ici : elle annulerait l'enregistrement des mauvais essais.)
+drop function if exists prive.verifier_mot_de_passe(text);
+create function prive.verifier_mot_de_passe(mot_de_passe text)
+returns text
 language plpgsql
 security definer
 set search_path = prive, pg_temp
@@ -154,14 +218,20 @@ as $$
 declare
   attendu text;
 begin
+  if (select count(*) from essais where le > now() - interval '15 minutes') >= 10 then
+    return 'Trop d''essais : réessayez dans 15 minutes.';
+  end if;
   select valeur into attendu from reglages where cle = 'mot_de_passe_resultats';
   if attendu is null then
-    raise exception 'Aucun mot de passe n''est défini : relancez supabase.sql après avoir remplacé CHANGEZ-MOI.';
+    return 'Aucun mot de passe n''est défini : relancez supabase.sql après avoir remplacé CHANGEZ-MOI.';
   end if;
   if mot_de_passe is null or encode(sha256(convert_to(mot_de_passe, 'UTF8')), 'hex') <> attendu then
+    insert into essais default values;
     perform pg_sleep(1); -- ralentit les essais au hasard
-    raise exception 'Mot de passe incorrect.';
+    return 'Mot de passe incorrect.';
   end if;
+  delete from essais where le < now() - interval '1 day';
+  return null;
 end;
 $$;
 
@@ -179,8 +249,12 @@ language plpgsql
 security definer
 set search_path = public, pg_temp
 as $$
+declare
+  erreur text := prive.verifier_mot_de_passe(mot_de_passe);
 begin
-  perform prive.verifier_mot_de_passe(mot_de_passe);
+  if erreur is not null then
+    return jsonb_build_object('erreur', erreur);
+  end if;
 
   return jsonb_build_object(
     'total', (select count(*) from participations),
@@ -193,11 +267,13 @@ begin
           'intitule', q.intitule,
           'type', q.type,
           'etiquettes', q.etiquettes,
-          'repondants', (select count(distinct r.participation_id) from reponses r where r.question_id = q.id),
+          'repondants', case when q.type = 'coordonnees'
+            then (select count(*) from participations where email is not null)
+            else (select count(distinct r.participation_id) from reponses r where r.question_id = q.id) end,
           'moyenne', case when q.type = 'note' then (select avg(r.valeur::integer) from reponses r where r.question_id = q.id) end,
           -- Pour unique, multiple et note : chaque réponse possible avec son nombre, dans l'ordre des choix.
           -- Les réponses dont l'intitulé a changé depuis sont gardées à la fin.
-          'valeurs', case when q.type <> 'texte' then (
+          'valeurs', case when q.type in ('unique', 'multiple', 'note') then (
             select coalesce(jsonb_agg(jsonb_build_object('valeur', a.valeur, 'nombre', a.nombre) order by a.rang, a.valeur), '[]')
             from (
               select attendue.valeur, attendue.rang,
@@ -223,6 +299,13 @@ begin
               order by p.id desc
               limit 200
             ) t
+          ) end,
+          -- Pour coordonnees : les 500 dernières personnes.
+          'contacts', case when q.type = 'coordonnees' then (
+            select coalesce(jsonb_agg(jsonb_build_object(
+              'prenom', p.prenom, 'nom', p.nom, 'email', p.email, 'telephone', p.telephone, 'date', prive.date_iso(p.cree_le)
+            ) order by p.id desc), '[]')
+            from (select * from participations where email is not null order by id desc limit 500) p
           ) end
         )
         order by q.numero
@@ -241,16 +324,24 @@ language plpgsql
 security definer
 set search_path = public, pg_temp
 as $$
+declare
+  erreur text := prive.verifier_mot_de_passe(mot_de_passe);
 begin
-  perform prive.verifier_mot_de_passe(mot_de_passe);
+  if erreur is not null then
+    return jsonb_build_object('erreur', erreur);
+  end if;
 
   return jsonb_build_object(
     'questions', coalesce((
-      select jsonb_agg(jsonb_build_object('id', id, 'numero', numero, 'intitule', intitule) order by numero)
+      select jsonb_agg(jsonb_build_object('id', id, 'numero', numero, 'intitule', intitule, 'type', type) order by numero)
       from questions where active
     ), '[]'),
     'participations', coalesce((
-      select jsonb_agg(jsonb_build_object('id', p.id, 'date', prive.date_iso(p.cree_le), 'reponses', coalesce(rep.parQuestion, '{}')) order by p.id)
+      select jsonb_agg(jsonb_build_object(
+        'id', p.id, 'date', prive.date_iso(p.cree_le),
+        'prenom', p.prenom, 'nom', p.nom, 'email', p.email, 'telephone', p.telephone,
+        'reponses', coalesce(rep.parQuestion, '{}')
+      ) order by p.id)
       from participations p
       left join lateral (
         select jsonb_object_agg(question_id, valeurs) as parQuestion
@@ -267,7 +358,7 @@ $$;
 
 -- 6. Droits -------------------------------------------------------------------
 -- Le site (rôles anon et authenticated) peut seulement : lire les questions actives
--- et appeler les trois fonctions ci-dessus. Les réponses ne sont lisibles qu'avec le mot de passe.
+-- et appeler les trois fonctions ci-dessus. Les réponses et les coordonnées ne sont lisibles qu'avec le mot de passe.
 alter table public.questions enable row level security;
 alter table public.participations enable row level security;
 alter table public.reponses enable row level security;

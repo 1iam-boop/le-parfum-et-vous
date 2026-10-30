@@ -44,10 +44,31 @@
   function carte(q) {
     const article = element("article", "carte resultat");
     article.append(element("h2", "", "Q" + q.numero + " · " + q.intitule));
-    let meta = q.repondants + " répondant" + (q.repondants > 1 ? "s" : "");
+    let meta = q.repondants + (q.type === "coordonnees" ? " personne" : " répondant") + (q.repondants > 1 ? "s" : "");
     if (q.type === "multiple") meta += " · plusieurs réponses possibles";
     if (q.type === "note" && q.moyenne !== null) meta += " · moyenne " + decimal.format(q.moyenne) + " / 5";
     article.append(element("p", "meta", meta));
+
+    if (q.type === "coordonnees") {
+      if (!q.contacts.length) {
+        article.append(element("p", "vide", "Aucune réponse pour l'instant."));
+        return article;
+      }
+      const liste = element("ul", "contacts");
+      q.contacts.forEach((c) => {
+        const li = element("li");
+        const temps = element("time", "", dateLongue.format(lireDate(c.date)));
+        temps.dateTime = lireDate(c.date).toISOString();
+        const email = element("a", "", c.email);
+        email.href = "mailto:" + c.email;
+        const telephone = element("a", "", c.telephone);
+        telephone.href = "tel:" + c.telephone.replace(/\s/g, "");
+        li.append(temps, element("strong", "", c.prenom + " " + c.nom), email, telephone);
+        liste.append(li);
+      });
+      article.append(liste);
+      return article;
+    }
 
     if (q.type === "texte") {
       if (!q.textes.length) {
@@ -158,11 +179,13 @@
 
   // Point-virgule et BOM : le fichier s'ouvre directement dans Excel en français, accents compris.
   function csv(donnees) {
-    const entete = ["N°", "Date (UTC)", ...donnees.questions.map((q) => "Q" + q.numero + " · " + q.intitule)];
+    const questions = donnees.questions.filter((q) => q.type !== "coordonnees");
+    const entete = ["N°", "Date (UTC)", "Prénom", "Nom", "E-mail", "Téléphone", ...questions.map((q) => "Q" + q.numero + " · " + q.intitule)];
     const lignes = donnees.participations.map((p) => [
       p.id,
       p.date.replace("T", " ").replace("Z", ""),
-      ...donnees.questions.map((q) => (p.reponses[q.id] || []).join(" | "))
+      p.prenom || "", p.nom || "", p.email || "", p.telephone || "",
+      ...questions.map((q) => (p.reponses[q.id] || []).join(" | "))
     ]);
     return "\ufeff" + [entete, ...lignes].map((l) => l.map(cellule).join(";")).join("\r\n") + "\r\n";
   }

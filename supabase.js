@@ -24,11 +24,22 @@ const Base = (function () {
 
   const fonction = (nom, parametres) => appeler("rpc/" + nom, { method: "POST", body: JSON.stringify(parametres) });
 
+  // resultats et export_reponses répondent { erreur } quand le mot de passe est refusé.
+  async function protegee(nom, motDePasse) {
+    const donnees = await fonction(nom, { mot_de_passe: motDePasse });
+    if (donnees && donnees.erreur) {
+      const erreur = new Error(donnees.erreur);
+      erreur.statut = 403;
+      throw erreur;
+    }
+    return donnees;
+  }
+
   return {
     configuree,
     questions: () => appeler("questions?select=id,intitule,aide,type,choix,etiquettes,obligatoire&order=numero"),
     enregistrer: (reponses) => fonction("enregistrer_reponses", { contenu: reponses }),
-    resultats: (motDePasse) => fonction("resultats", { mot_de_passe: motDePasse }),
-    exporter: (motDePasse) => fonction("export_reponses", { mot_de_passe: motDePasse })
+    resultats: (motDePasse) => protegee("resultats", motDePasse),
+    exporter: (motDePasse) => protegee("export_reponses", motDePasse)
   };
 })();

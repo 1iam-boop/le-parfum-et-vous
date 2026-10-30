@@ -17,6 +17,17 @@
   let index = 0;
   const reponses = {};
 
+  // Champs de la question « coordonnees » : clé, libellé, type, autocomplete, clavier sur mobile.
+  const CHAMPS = [
+    ["prenom", "Prénom", "text", "given-name"],
+    ["nom", "Nom", "text", "family-name"],
+    ["email", "E-mail", "email", "email", "email"],
+    ["telephone", "Téléphone", "tel", "tel", "tel"]
+  ];
+  const ACCORD = "J'accepte qu'AW Parfumerie utilise ces coordonnées pour me recontacter.";
+  const MENTION = "Vos coordonnées sont réservées à AW Parfumerie : elles ne sont jamais transmises à des tiers " +
+    "et sont effacées au bout de 3 ans. Pour les consulter, les corriger ou les supprimer, écrivez à simaowilly@gmail.com.";
+
   // ——— Chargement des questions ———
   async function charger() {
     const commencer = $("#commencer");
@@ -84,6 +95,19 @@
       q.choix.forEach((c) => liste.append(option(q, q.type === "unique" ? "radio" : "checkbox", c, c,
         q.type === "unique" ? deja === c : (deja || []).includes(c))));
       zone.append(liste);
+    } else if (q.type === "coordonnees") {
+      const grille = element("div", { class: "coordonnees" });
+      CHAMPS.forEach(([cle, libelle, type, autocomplete, clavier]) => {
+        const bloc = element("div", { class: "champ-bloc" });
+        const champ = element("input", { id: "c-" + cle, type, class: "champ", autocomplete, maxlength: "100", required: "" });
+        if (clavier) champ.setAttribute("inputmode", clavier);
+        champ.value = (deja && deja[cle]) || "";
+        bloc.append(element("label", { for: "c-" + cle }, libelle), champ);
+        grille.append(bloc);
+      });
+      const accord = option(q, "checkbox", "oui", ACCORD, Boolean(deja && deja.consentement));
+      accord.classList.add("accord");
+      zone.append(grille, accord, element("p", { class: "mention-rgpd" }, MENTION));
     } else if (q.type === "note") {
       const echelle = element("div", { class: "echelle" });
       for (let n = 1; n <= 5; n++) {
@@ -108,6 +132,11 @@
 
   // ——— Lecture et vérification de la réponse affichée ———
   function lire(q) {
+    if (q.type === "coordonnees") {
+      const valeur = { consentement: zone.querySelector(".accord input").checked };
+      CHAMPS.forEach(([cle]) => { valeur[cle] = zone.querySelector("#c-" + cle).value.trim(); });
+      return valeur;
+    }
     if (q.type === "texte") return zone.querySelector("input").value.trim();
     const coches = [...zone.querySelectorAll("input:checked")].map((i) => i.value);
     if (q.type === "multiple") return coches;
@@ -123,12 +152,27 @@
     return !vide;
   }
 
+  // Mêmes règles que dans supabase.sql : [champ à corriger, message] ou null si tout est bon.
+  function verifierCoordonnees(c) {
+    if (!c.prenom) return ["prenom", "Indiquez votre prénom."];
+    if (!c.nom) return ["nom", "Indiquez votre nom."];
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(c.email)) return ["email", "Indiquez une adresse e-mail valide (ex. prenom@exemple.fr)."];
+    if (!/^\+?\d{8,15}$/.test(c.telephone.replace(/[^\d+]/g, ""))) return ["telephone", "Indiquez un numéro de téléphone valide (ex. 06 12 34 56 78)."];
+    if (!c.consentement) return [null, "Cochez la case pour accepter que nous vous recontactions."];
+    return null;
+  }
+
   function signaler(message) {
     erreur.textContent = message;
     erreur.hidden = false;
   }
 
-  zone.addEventListener("change", () => { erreur.hidden = true; });
+  // Le message disparaît dès qu'on corrige (frappe ou clic), pas quand le champ perd le focus :
+  // sinon le bouton « Suivant » remonterait sous le doigt et le clic serait perdu.
+  zone.addEventListener("input", (e) => {
+    erreur.hidden = true;
+    e.target.removeAttribute("aria-invalid");
+  });
 
   precedent.addEventListener("click", () => {
     memoriser(questions[index]);
@@ -139,7 +183,17 @@
   formulaire.addEventListener("submit", (evenement) => {
     evenement.preventDefault();
     const q = questions[index];
-    if (!memoriser(q) && q.obligatoire) {
+    const rempli = memoriser(q);
+    if (q.type === "coordonnees") {
+      const probleme = verifierCoordonnees(reponses[q.id]);
+      if (probleme) {
+        signaler(probleme[1]);
+        const champ = probleme[0] ? zone.querySelector("#c-" + probleme[0]) : zone.querySelector(".accord input");
+        if (probleme[0]) champ.setAttribute("aria-invalid", "true");
+        champ.focus();
+        return;
+      }
+    } else if (!rempli && q.obligatoire) {
       signaler(q.type === "multiple" ? "Choisissez au moins une réponse pour continuer." : "Choisissez une réponse pour continuer.");
       return;
     }
@@ -157,6 +211,9 @@
     suivant.textContent = "Envoi en cours…";
     try {
       await Base.enregistrer(reponses);
+      const coordonnees = questions.find((q) => q.type === "coordonnees");
+      const prenom = coordonnees && reponses[coordonnees.id] ? reponses[coordonnees.id].prenom : "";
+      $("#merci .surtitre").textContent = prenom ? "Merci pour vos réponses, " + prenom + " !" : "Merci pour vos réponses !";
       montrer("merci");
       $("#merci .titre").focus();
     } catch (err) {

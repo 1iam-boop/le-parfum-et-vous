@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Le parfum et vous · Questionnaire</title>
-  <meta name="description" content="10 questions, 2 minutes : parlez-nous de votre rapport au parfum, puis découvrez AW Parfumerie." />
+  <meta name="description" content="Quelques minutes pour nous parler de votre rapport au parfum, puis découvrir AW Parfumerie." />
   <meta name="theme-color" content="#f6efe7" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://*.supabase.co; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; base-uri 'none'; form-action 'self'" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
@@ -21,15 +21,15 @@
   <main class="page">
     <!-- 1. Accueil -->
     <section class="ecran" id="accueil">
-      <p class="surtitre">Questionnaire · 10 questions · 2 minutes</p>
+      <p class="surtitre">Questionnaire · 11 questions · 3 minutes</p>
       <h1 class="titre" tabindex="-1"><span class="script">Le parfum</span> et vous</h1>
       <p class="intro">Vos habitudes, vos goûts, votre budget : aidez-nous à mieux connaître ce que vous attendez d'un parfum.</p>
       <button class="btn btn-prune" id="commencer" disabled>Commencer</button>
       <p class="erreur" id="erreurChargement" role="alert" hidden></p>
-      <p class="mention">Réponses anonymes : nous ne vous demandons ni nom, ni e-mail.</p>
+      <p class="mention">Vos coordonnées restent confidentielles et ne sont jamais transmises à des tiers.</p>
     </section>
 
-    <!-- 2. Les 10 questions (affichées une par une par app.js) -->
+    <!-- 2. Les 11 questions (vos coordonnées, puis 10 questions sur le parfum), affichées une par une par app.js -->
     <section class="ecran" id="questionnaire" hidden>
       <div class="progression">
         <p class="compteur" id="compteur"></p>

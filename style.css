@@ -124,3 +124,19 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 .connexion .champ { margin-top: 0; }
 .connexion .surtitre { margin-bottom: 0; }
 .connexion .erreur { margin-top: 0; }
+
+/* Question « Vos coordonnées » */
+.coordonnees { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; margin-top: 1.2rem; }
+.champ-bloc label { display: block; margin-bottom: .3rem; font-size: .8rem; font-weight: 600; color: var(--gris); }
+.coordonnees .champ { margin-top: 0; }
+.champ[aria-invalid="true"] { border-color: var(--alerte); }
+.accord { margin-top: 1.2rem; font-size: .88rem; line-height: 1.45; }
+.mention-rgpd { margin: .8rem 0 0; font-size: .75rem; line-height: 1.5; color: var(--gris); }
+@media (max-width: 480px) { .coordonnees { grid-template-columns: 1fr; } }
+
+/* Liste des coordonnées (page des résultats) */
+.contacts { display: grid; gap: .5rem; max-height: 26rem; overflow: auto; margin: 0; padding: 0; list-style: none; }
+.contacts li { display: grid; grid-template-columns: auto 1fr; gap: .1rem 1rem; padding: .6rem .8rem; border-left: 3px solid var(--rose); background: #fff; border-radius: 0 10px 10px 0; font-size: .9rem; overflow-wrap: anywhere; }
+.contacts time { grid-column: 1 / -1; font-size: .72rem; color: var(--gris); }
+.contacts strong { grid-column: 1 / -1; font-weight: 600; }
+.contacts a { color: var(--prune); }

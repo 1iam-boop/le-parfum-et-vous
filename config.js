@@ -7,6 +7,6 @@
  * Ne mettez jamais ici la clé « secret » ni le mot de passe de la base.
  */
 const SUPABASE = {
-  url: "",
-  cle: ""
+  url: "https://qtbnwgieanscsywnahlh.supabase.co",
+  cle: "sb_publishable_l8WhVQ_4bpgAcbXbyMia8Q_kISy80So"
 };
