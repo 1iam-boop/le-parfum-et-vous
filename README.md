@@ -50,6 +50,7 @@ Sur GitHub, dans ce dépôt : **Settings** › **Pages** › **Source : Deploy f
 | `config.js` | L'adresse et la clé publique de la base Supabase |
 | `supabase.js` | Les appels à la base de données |
 | `admin/` | La page des résultats (par personne, statistiques, export Excel) |
+| `affiche/` | L'affiche A4 avec le QR code vers le questionnaire : PDF à imprimer, PNG pour les réseaux, et le QR code seul |
 | `supabase.sql` | La base de données : tables, **les 11 questions**, vérification des réponses, statistiques, droits d'accès |
 
 ## La base de données
