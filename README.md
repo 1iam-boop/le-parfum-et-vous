@@ -4,7 +4,7 @@ Un petit site indépendant en trois étapes :
 
 1. **un questionnaire de 11 questions**, affichées une par une : d'abord les **coordonnées** de la personne (prénom, nom, e-mail, téléphone, toutes obligatoires), puis 10 questions sur le parfum (habitudes, goûts, budget…) ;
 2. **une présentation d'AW Parfumerie en 3 phrases** ;
-3. **un lien vers le site AW Parfumerie** (https://1iam-boop.github.io/Nextface/).
+3. **un lien vers le site AW Parfumerie** (https://1iam-boop.github.io/AW-Parfumerie/).
 
 Le site est hébergé gratuitement sur **GitHub Pages** : `https://1iam-boop.github.io/le-parfum-et-vous/`.
 Les réponses sont enregistrées dans **une petite base de données gratuite chez [Supabase](https://supabase.com)** (PostgreSQL). Une page protégée par mot de passe, `https://1iam-boop.github.io/le-parfum-et-vous/admin/`, affiche :
